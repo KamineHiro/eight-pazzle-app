@@ -12,10 +12,6 @@
 - レスポンシブデザイン
 - 8パズルと15パズルの切り替え機能
 
-## プレイする
-
-[https://eight-pazzle-application.vercel.app](https://eight-pazzle-application.vercel.app) でプレイできます！
-
 ## 開発環境のセットアップ
 
 このプロジェクトは [Next.js](https://nextjs.org) で作成されています。
