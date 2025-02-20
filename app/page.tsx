@@ -26,7 +26,7 @@ const EightPuzzle = () => {
       [numbers[i], numbers[j]] = [numbers[j], numbers[i]]
     }
     return numbers
-  }, [])
+  }, [SOLVED_STATE])
 
   // 解けるパズルを生成する関数を8パズル用に戻す
   const generateSolvableBoard = useCallback(() => {
@@ -73,7 +73,6 @@ const EightPuzzle = () => {
         timestamp: Date.now()
       }
       
-      // 重複を除去しつつ、ソートを行う
       const newRanking = [...ranking, newRecord]
         .sort((a, b) => {
           if (a.moves !== b.moves) {
@@ -81,17 +80,16 @@ const EightPuzzle = () => {
           }
           return (b.timestamp || 0) - (a.timestamp || 0);
         })
-        // 手数が同じ場合は最新のものだけを残す
         .filter((record, index, self) => 
           index === self.findIndex(r => r.moves === record.moves)
         )
         .slice(0, 5)
-        .map(({ timestamp, ...rest }) => rest);
+        .map(({ moves, date }) => ({ moves, date }));
 
       setRanking(newRanking)
       localStorage.setItem('puzzleRanking', JSON.stringify(newRanking))
     }
-  }, [board, moveCount, SOLVED_STATE, isCleared])
+  }, [board, moveCount, SOLVED_STATE, isCleared, ranking])
 
   // リセットボタンのハンドラー
   const handleReset = () => {

@@ -24,7 +24,7 @@ const FifteenPuzzle = () => {
       [numbers[i], numbers[j]] = [numbers[j], numbers[i]]
     }
     return numbers
-  }, [])
+  }, [SOLVED_STATE])
 
   const generateSolvableBoard = useCallback(() => {
     const isSolvable = (board: number[]) => {
@@ -85,12 +85,12 @@ const FifteenPuzzle = () => {
           index === self.findIndex(r => r.moves === record.moves)
         )
         .slice(0, 5)
-        .map(({ timestamp, ...rest }) => rest);
+        .map(({ moves, date }) => ({ moves, date }));
 
       setRanking(newRanking)
       localStorage.setItem('fifteenPuzzleRanking', JSON.stringify(newRanking))
     }
-  }, [board, moveCount, SOLVED_STATE, isCleared])
+  }, [board, moveCount, SOLVED_STATE, isCleared, ranking])
 
   const handleReset = () => {
     setBoard(generateSolvableBoard())
