@@ -84,8 +84,7 @@ const FifteenPuzzle = () => {
         .filter((record, index, self) => 
           index === self.findIndex(r => r.moves === record.moves)
         )
-        .slice(0, 5)
-        .map(({ moves, date, timestamp }) => ({ moves, date, timestamp }));
+        .slice(0, 5);
 
       setRanking(newRanking)
       localStorage.setItem('fifteenPuzzleRanking', JSON.stringify(newRanking))
