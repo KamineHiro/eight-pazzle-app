@@ -68,10 +68,11 @@ const FifteenPuzzle = () => {
   useEffect(() => {
     if (board.length > 0 && JSON.stringify(board) === JSON.stringify(SOLVED_STATE) && !isCleared) {
       setIsCleared(true)
+      const currentTimestamp = Date.now();
       const newRecord: RankingRecord = {
         moves: moveCount,
         date: new Date().toLocaleDateString('ja-JP'),
-        timestamp: Date.now()
+        timestamp: currentTimestamp
       }
       
       const newRanking = [...ranking, newRecord]
@@ -79,7 +80,7 @@ const FifteenPuzzle = () => {
           if (a.moves !== b.moves) {
             return a.moves - b.moves;
           }
-          return (b.timestamp || 0) - (a.timestamp || 0);
+          return ((b.timestamp || currentTimestamp) - (a.timestamp || currentTimestamp));
         })
         .filter((record, index, self) => 
           index === self.findIndex(r => r.moves === record.moves)
