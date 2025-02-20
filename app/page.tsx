@@ -1,24 +1,52 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import styles from './page.module.css'
 import Link from 'next/link'
 
 // ランキングの型定義
 type RankingRecord = {
+  id: number;
   moves: number;
   date: string;
-  timestamp?: number;
+  gameType: string;
 }
 
 const EightPuzzle = () => {
-  const SOLVED_STATE = [1, 2, 3, 4, 5, 6, 7, 8, 0]
+  const SOLVED_STATE = useMemo(() => [1, 2, 3, 4, 5, 6, 7, 8, 0], [])
   const [board, setBoard] = useState<number[]>([])
   const [isCleared, setIsCleared] = useState(false)
   const [moveCount, setMoveCount] = useState(0)
   const [ranking, setRanking] = useState<RankingRecord[]>([])
 
-  // ボードをシャッフルする関数
+  // 1. fetchRankingsを先に定義
+  const fetchRankings = async () => {
+    try {
+      const response = await fetch('/api/rankings?gameType=eight')
+      if (!response.ok) throw new Error('Failed to fetch rankings')
+      const data = await response.json()
+      setRanking(data)
+    } catch (error) {
+      console.error('Failed to fetch rankings:', error)
+    }
+  }
+
+  // 2. handleClearを次に定義
+  const handleClear = useCallback(async () => {
+    setIsCleared(true)
+    try {
+      await fetch('/api/rankings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ moves: moveCount, gameType: 'eight' })
+      })
+      await fetchRankings()
+    } catch (error) {
+      console.error('Failed to update ranking:', error)
+    }
+  }, [moveCount])
+
+  // 3. その他の関数を定義
   const shuffleBoard = useCallback(() => {
     const numbers = [...SOLVED_STATE]
     for (let i = numbers.length - 1; i > 0; i--) {
@@ -52,44 +80,23 @@ const EightPuzzle = () => {
 
   // 初期化
   useEffect(() => {
-    setBoard(generateSolvableBoard())
-  }, [generateSolvableBoard])
-
-  // ランキングの読み込み
-  useEffect(() => {
-    const savedRanking = localStorage.getItem('puzzleRanking')
-    if (savedRanking) {
-      setRanking(JSON.parse(savedRanking))
+    const initialize = async () => {
+      const initialBoard = generateSolvableBoard();
+      setBoard(initialBoard);
+      await fetchRankings();
     }
-  }, [])
+    initialize();
+  }, [generateSolvableBoard]) // 依存配列に追加
 
-  // クリア判定とランキング更新
+  // ボードの状態監視
   useEffect(() => {
-    if (board.length > 0 && JSON.stringify(board) === JSON.stringify(SOLVED_STATE) && !isCleared) {
-      setIsCleared(true)
-      const currentTimestamp = Date.now();
-      const newRecord: RankingRecord = {
-        moves: moveCount,
-        date: new Date().toLocaleDateString('ja-JP'),
-        timestamp: currentTimestamp
-      }
-      
-      const newRanking = [...ranking, newRecord]
-        .sort((a, b) => {
-          if (a.moves !== b.moves) {
-            return a.moves - b.moves;
-          }
-          return ((b.timestamp || currentTimestamp) - (a.timestamp || currentTimestamp));
-        })
-        .filter((record, index, self) => 
-          index === self.findIndex(r => r.moves === record.moves)
-        )
-        .slice(0, 5);
-
-      setRanking(newRanking)
-      localStorage.setItem('puzzleRanking', JSON.stringify(newRanking))
+    const isSolved = board.length > 0 && 
+                    JSON.stringify(board) === JSON.stringify(SOLVED_STATE);
+    
+    if (isSolved && !isCleared) {
+      handleClear();
     }
-  }, [board, moveCount, SOLVED_STATE, isCleared])
+  }, [board, SOLVED_STATE, isCleared, handleClear]) // 依存配列に追加
 
   // リセットボタンのハンドラー
   const handleReset = () => {

@@ -1,21 +1,49 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import styles from '../page.module.css'
 import Link from 'next/link'
 
 type RankingRecord = {
+  id: number;
   moves: number;
   date: string;
-  timestamp?: number;
+  gameType: string;
 }
 
 const FifteenPuzzle = () => {
-  const SOLVED_STATE = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]
+  const SOLVED_STATE = useMemo(() => 
+    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0], 
+  [])
   const [board, setBoard] = useState<number[]>([])
   const [isCleared, setIsCleared] = useState(false)
   const [moveCount, setMoveCount] = useState(0)
   const [ranking, setRanking] = useState<RankingRecord[]>([])
+
+  const fetchRankings = async () => {
+    try {
+      const response = await fetch('/api/rankings?gameType=fifteen')
+      if (!response.ok) throw new Error('Failed to fetch rankings')
+      const data = await response.json()
+      setRanking(data)
+    } catch (error) {
+      console.error('Failed to fetch rankings:', error)
+    }
+  }
+
+  const handleClear = useCallback(async () => {
+    setIsCleared(true)
+    try {
+      await fetch('/api/rankings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ moves: moveCount, gameType: 'fifteen' })
+      })
+      await fetchRankings()
+    } catch (error) {
+      console.error('Failed to update ranking:', error)
+    }
+  }, [moveCount])
 
   const shuffleBoard = useCallback(() => {
     const numbers = [...SOLVED_STATE]
@@ -37,12 +65,10 @@ const FifteenPuzzle = () => {
         }
       }
       
-      // 空白マスの位置（下から数えた行数）
       const emptyIndex = board.indexOf(0);
       const emptyRow = Math.floor(emptyIndex / 4);
       const rowFromBottom = 4 - emptyRow;
       
-      // 4×4の場合の解けるパズルの条件
       return (rowFromBottom % 2 === 1) === (inversions % 2 === 0);
     };
 
@@ -55,42 +81,22 @@ const FifteenPuzzle = () => {
   }, [shuffleBoard])
 
   useEffect(() => {
-    setBoard(generateSolvableBoard())
+    const initialize = async () => {
+      const initialBoard = generateSolvableBoard();
+      setBoard(initialBoard);
+      await fetchRankings();
+    }
+    initialize();
   }, [generateSolvableBoard])
 
   useEffect(() => {
-    const savedRanking = localStorage.getItem('fifteenPuzzleRanking')
-    if (savedRanking) {
-      setRanking(JSON.parse(savedRanking))
+    const isSolved = board.length > 0 && 
+                    JSON.stringify(board) === JSON.stringify(SOLVED_STATE);
+    
+    if (isSolved && !isCleared) {
+      handleClear();
     }
-  }, [])
-
-  useEffect(() => {
-    if (board.length > 0 && JSON.stringify(board) === JSON.stringify(SOLVED_STATE) && !isCleared) {
-      setIsCleared(true)
-      const currentTimestamp = Date.now();
-      const newRecord: RankingRecord = {
-        moves: moveCount,
-        date: new Date().toLocaleDateString('ja-JP'),
-        timestamp: currentTimestamp
-      }
-      
-      const newRanking = [...ranking, newRecord]
-        .sort((a, b) => {
-          if (a.moves !== b.moves) {
-            return a.moves - b.moves;
-          }
-          return ((b.timestamp || currentTimestamp) - (a.timestamp || currentTimestamp));
-        })
-        .filter((record, index, self) => 
-          index === self.findIndex(r => r.moves === record.moves)
-        )
-        .slice(0, 5);
-
-      setRanking(newRanking)
-      localStorage.setItem('fifteenPuzzleRanking', JSON.stringify(newRanking))
-    }
-  }, [board, moveCount, SOLVED_STATE, isCleared, ranking])
+  }, [board, SOLVED_STATE, isCleared, handleClear])
 
   const handleReset = () => {
     setBoard(generateSolvableBoard())
@@ -133,28 +139,32 @@ const FifteenPuzzle = () => {
                 8パズルへ
               </Link>
             </div>
+            
             <div className={styles.stats}>
               <div className={styles.moveCount}>
                 手数: {moveCount}
               </div>
             </div>
+
             <div className={`${styles.board} ${styles.boardFifteen}`}>
-              {board.map((tile, index) => (
+              {board.map((number, index) => (
                 <button
                   key={index}
                   className={`${styles.tile} ${isCleared ? styles.cleared : ''}`}
                   onClick={() => handleTileClick(index)}
-                  disabled={tile === 0}
+                  disabled={number === 0}
                 >
-                  {tile !== 0 ? tile : ''}
+                  {number === 0 ? '' : number}
                 </button>
               ))}
             </div>
+
             {isCleared && (
               <div className={styles.clearMessage}>
-                🎉 {moveCount}手でクリア！ 🎉
+                クリア！
               </div>
             )}
+            
             <button 
               className={styles.resetButton}
               onClick={handleReset}
@@ -169,10 +179,12 @@ const FifteenPuzzle = () => {
               {ranking.length > 0 ? (
                 <div className={styles.rankingList}>
                   {ranking.map((record, index) => (
-                    <div key={index} className={styles.rankingItem}>
+                    <div key={record.id} className={styles.rankingItem}>
                       <span className={styles.rankingRank}>#{index + 1}</span>
                       <span className={styles.rankingMoves}>{record.moves}手</span>
-                      <span className={styles.rankingDate}>{record.date}</span>
+                      <span className={styles.rankingDate}>
+                        {new Date(record.date).toLocaleDateString()}
+                      </span>
                     </div>
                   ))}
                 </div>
