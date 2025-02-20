@@ -1,24 +1,22 @@
 'use client'
 
 import { useState, useCallback, useEffect } from 'react'
-import styles from './page.module.css'
+import styles from '../page.module.css'
 import Link from 'next/link'
 
-// ランキングの型定義
 type RankingRecord = {
   moves: number;
   date: string;
   timestamp?: number;
 }
 
-const EightPuzzle = () => {
-  const SOLVED_STATE = [1, 2, 3, 4, 5, 6, 7, 8, 0]
+const FifteenPuzzle = () => {
+  const SOLVED_STATE = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]
   const [board, setBoard] = useState<number[]>([])
   const [isCleared, setIsCleared] = useState(false)
   const [moveCount, setMoveCount] = useState(0)
   const [ranking, setRanking] = useState<RankingRecord[]>([])
 
-  // ボードをシャッフルする関数
   const shuffleBoard = useCallback(() => {
     const numbers = [...SOLVED_STATE]
     for (let i = numbers.length - 1; i > 0; i--) {
@@ -28,7 +26,6 @@ const EightPuzzle = () => {
     return numbers
   }, [])
 
-  // 解けるパズルを生成する関数を8パズル用に戻す
   const generateSolvableBoard = useCallback(() => {
     const isSolvable = (board: number[]) => {
       let inversions = 0;
@@ -39,7 +36,14 @@ const EightPuzzle = () => {
           }
         }
       }
-      return inversions % 2 === 0;
+      
+      // 空白マスの位置（下から数えた行数）
+      const emptyIndex = board.indexOf(0);
+      const emptyRow = Math.floor(emptyIndex / 4);
+      const rowFromBottom = 4 - emptyRow;
+      
+      // 4×4の場合の解けるパズルの条件
+      return (rowFromBottom % 2 === 1) === (inversions % 2 === 0);
     };
 
     let newBoard;
@@ -50,20 +54,17 @@ const EightPuzzle = () => {
     return newBoard;
   }, [shuffleBoard])
 
-  // 初期化
   useEffect(() => {
     setBoard(generateSolvableBoard())
   }, [generateSolvableBoard])
 
-  // ランキングの読み込み
   useEffect(() => {
-    const savedRanking = localStorage.getItem('puzzleRanking')
+    const savedRanking = localStorage.getItem('fifteenPuzzleRanking')
     if (savedRanking) {
       setRanking(JSON.parse(savedRanking))
     }
   }, [])
 
-  // クリア判定とランキング更新
   useEffect(() => {
     if (board.length > 0 && JSON.stringify(board) === JSON.stringify(SOLVED_STATE) && !isCleared) {
       setIsCleared(true)
@@ -73,7 +74,6 @@ const EightPuzzle = () => {
         timestamp: Date.now()
       }
       
-      // 重複を除去しつつ、ソートを行う
       const newRanking = [...ranking, newRecord]
         .sort((a, b) => {
           if (a.moves !== b.moves) {
@@ -81,7 +81,6 @@ const EightPuzzle = () => {
           }
           return (b.timestamp || 0) - (a.timestamp || 0);
         })
-        // 手数が同じ場合は最新のものだけを残す
         .filter((record, index, self) => 
           index === self.findIndex(r => r.moves === record.moves)
         )
@@ -89,39 +88,33 @@ const EightPuzzle = () => {
         .map(({ timestamp, ...rest }) => rest);
 
       setRanking(newRanking)
-      localStorage.setItem('puzzleRanking', JSON.stringify(newRanking))
+      localStorage.setItem('fifteenPuzzleRanking', JSON.stringify(newRanking))
     }
   }, [board, moveCount, SOLVED_STATE, isCleared])
 
-  // リセットボタンのハンドラー
   const handleReset = () => {
     setBoard(generateSolvableBoard())
     setIsCleared(false)
-    setMoveCount(0)  // 手数リセット
+    setMoveCount(0)
   }
 
-  // タイルをクリックしたときの処理
   const handleTileClick = (index: number) => {
-    if (isCleared) return // クリア後は操作を無効化
+    if (isCleared) return
     
     const emptyIndex = board.indexOf(0)
-    
-    // 移動可能かチェック（上下左右に隣接しているか）
     if (!isMovable(index, emptyIndex)) return
     
-    // ボードの状態を更新
     const newBoard = [...board]
     ;[newBoard[index], newBoard[emptyIndex]] = [newBoard[emptyIndex], newBoard[index]]
     setBoard(newBoard)
-    setMoveCount(prev => prev + 1)  // 手数カウントアップ
+    setMoveCount(prev => prev + 1)
   }
 
-  // タイルが移動可能か判定する関数を3x3用に戻す
   const isMovable = (tileIndex: number, emptyIndex: number) => {
-    const row = Math.floor(tileIndex / 3)
-    const col = tileIndex % 3
-    const emptyRow = Math.floor(emptyIndex / 3)
-    const emptyCol = emptyIndex % 3
+    const row = Math.floor(tileIndex / 4)
+    const col = tileIndex % 4
+    const emptyRow = Math.floor(emptyIndex / 4)
+    const emptyCol = emptyIndex % 4
 
     return (
       (Math.abs(row - emptyRow) === 1 && col === emptyCol) ||
@@ -135,9 +128,9 @@ const EightPuzzle = () => {
         <div className={styles.contentContainer}>
           <div className={styles.gameArea}>
             <div className={styles.header}>
-              <h1 className={styles.title}>8パズル</h1>
-              <Link href="/fifteen" className={styles.navButton}>
-                15パズルへ
+              <h1 className={styles.title}>15パズル</h1>
+              <Link href="/" className={styles.navButton}>
+                8パズルへ
               </Link>
             </div>
             <div className={styles.stats}>
@@ -145,7 +138,7 @@ const EightPuzzle = () => {
                 手数: {moveCount}
               </div>
             </div>
-            <div className={styles.board}>
+            <div className={`${styles.board} ${styles.boardFifteen}`}>
               {board.map((tile, index) => (
                 <button
                   key={index}
@@ -190,7 +183,7 @@ const EightPuzzle = () => {
 
             <div className={styles.sampleContainer}>
               <p className={styles.sampleTitle}>クリア状態</p>
-              <div className={styles.sampleBoard}>
+              <div className={`${styles.sampleBoard} ${styles.sampleBoardFifteen}`}>
                 {SOLVED_STATE.map((tile, index) => (
                   <div key={index} className={styles.sampleTile}>
                     {tile !== 0 ? tile : ''}
@@ -205,4 +198,4 @@ const EightPuzzle = () => {
   )
 }
 
-export default EightPuzzle
+export default FifteenPuzzle 
