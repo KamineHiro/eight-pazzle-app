@@ -2,8 +2,8 @@
 
 シンプルで楽しい8パズルと15パズルのゲームアプリケーションです。
 
-![8パズルのスクリーンショット](/screenshots/app1.png)
-![8パズルのスクリーンショット](/screenshots/app2.png)
+![8パズルのスクリーンショット](/public/screenshots/app1.png)
+![8パズルのスクリーンショット](/public/screenshots/app2.png)
 
 ## 特徴
 
