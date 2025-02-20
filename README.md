@@ -14,7 +14,7 @@
 
 ## プレイする
 
-[https://main.d2gu9v8qb30q0.amplifyapp.com](https://main.d2gu9v8qb30q0.amplifyapp.com) でプレイできます！
+[https://eight-pazzle-application.vercel.app](https://eight-pazzle-application.vercel.app) でプレイできます！
 
 ## 開発環境のセットアップ
 
